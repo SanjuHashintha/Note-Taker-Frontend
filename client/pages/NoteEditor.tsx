@@ -42,7 +42,7 @@ import { fetchWithAuth } from "@/utils/api";
 export default function NoteEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isEditing = id !== "new";
+  const isEditing = id && id !== undefined && id !== "new";
   const [isPreview, setIsPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);

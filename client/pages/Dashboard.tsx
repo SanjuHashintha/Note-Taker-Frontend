@@ -59,7 +59,10 @@ export default function Dashboard() {
           title: n.title,
           content: n.content,
           category: n.categoryId ? n.categoryId.name : "Uncategorized",
-          tags: n.tagId ? [n.tagId.name] : [],
+          categoryColor: n.categoryId ? n.categoryId.color : "#000000",
+          tags: n.tagId
+            ? [{ name: n.tagId.name, color: n.tagId.colorCode }]
+            : [],
           createdAt: new Date(n.createdAt).toLocaleDateString(),
           updatedAt: new Date(n.updatedAt).toLocaleDateString(),
           isShared: false,
@@ -368,8 +371,20 @@ export default function Dashboard() {
                         </div>
                       </div>
                     </div>
-                    <CardDescription className="text-white/70">
-                      {note.category}
+                    <CardDescription className="text-white/70 flex items-center gap-2">
+                      <span>Category:</span>
+                      {note.category && (
+                        <Badge
+                          style={{
+                            backgroundColor: note.categoryColor + "33",
+                            border: `1px solid ${note.categoryColor}`,
+                            color: "#fff",
+                          }}
+                          className="text-xs px-2 py-1 rounded-lg"
+                        >
+                          {note.category}
+                        </Badge>
+                      )}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="relative">
@@ -377,16 +392,21 @@ export default function Dashboard() {
                       {note.content}
                     </p>
                     <div className="flex flex-wrap gap-1 mb-4">
-                      {note.tags.map((tag) => (
+                      {note.tags.map((tag: any) => (
                         <Badge
-                          key={tag}
-                          variant="outline"
-                          className="text-xs bg-white/5 border-white/20 text-white/70 hover:bg-white/10"
+                          key={tag.name}
+                          style={{
+                            backgroundColor: tag.color + "33",
+                            border: `1px solid ${tag.color}`,
+                            color: "#fff",
+                          }}
+                          className="text-xs px-2 py-1 rounded-lg"
                         >
-                          {tag}
+                          #{tag.name}
                         </Badge>
                       ))}
                     </div>
+
                     <div className="flex items-center justify-between text-xs text-white/50">
                       <div className="flex items-center">
                         <Clock className="h-3 w-3 mr-1" />
