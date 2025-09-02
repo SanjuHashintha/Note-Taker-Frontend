@@ -1,145 +1,248 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Folder, 
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Folder,
   Search,
   FolderOpen,
   FileText,
   Save,
-  X
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import Layout from '@/components/Layout';
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import Layout from "@/components/Layout";
+import { fetchWithAuth } from "@/utils/api";
 
 interface Category {
   categorycode: string;
   name: string;
   description: string;
-  color?: string; // optional as specified in backend
-  // Optional frontend-only fields for UI
-  noteCount?: number;
-  createdAt?: string;
+  color?: string;
+  createdAt: string;
 }
 
-const mockCategories: Category[] = [
-  {
-    categorycode: 'MATH001',
-    name: 'Mathematics',
-    description: 'Calculus, algebra, statistics, and mathematical concepts',
-    color: '#3B82F6',
-    noteCount: 15,
-    createdAt: '2024-01-01'
-  },
-  {
-    categorycode: 'CS001',
-    name: 'Computer Science',
-    description: 'Programming, algorithms, data structures, and software development',
-    color: '#10B981',
-    noteCount: 23,
-    createdAt: '2024-01-02'
-  },
-  {
-    categorycode: 'PHY001',
-    name: 'Physics',
-    description: 'Quantum mechanics, thermodynamics, and physical laws',
-    color: '#8B5CF6',
-    noteCount: 8,
-    createdAt: '2024-01-03'
-  },
-  {
-    categorycode: 'CHEM001',
-    name: 'Chemistry',
-    description: 'Organic chemistry, lab experiments, and chemical reactions',
-    color: '#F59E0B',
-    noteCount: 12,
-    createdAt: '2024-01-04'
-  },
-  {
-    categorycode: 'HIST001',
-    name: 'History',
-    description: 'World history, historical events, and cultural studies',
-    color: '#EF4444',
-    noteCount: 6,
-    createdAt: '2024-01-05'
-  }
-];
+// const mockCategories: Category[] = [
+//   {
+//     categorycode: 'MATH001',
+//     name: 'Mathematics',
+//     description: 'Calculus, algebra, statistics, and mathematical concepts',
+//     color: '#3B82F6',
+//     noteCount: 15,
+//     createdAt: '2024-01-01'
+//   },
+//   {
+//     categorycode: 'CS001',
+//     name: 'Computer Science',
+//     description: 'Programming, algorithms, data structures, and software development',
+//     color: '#10B981',
+//     noteCount: 23,
+//     createdAt: '2024-01-02'
+//   },
+//   {
+//     categorycode: 'PHY001',
+//     name: 'Physics',
+//     description: 'Quantum mechanics, thermodynamics, and physical laws',
+//     color: '#8B5CF6',
+//     noteCount: 8,
+//     createdAt: '2024-01-03'
+//   },
+//   {
+//     categorycode: 'CHEM001',
+//     name: 'Chemistry',
+//     description: 'Organic chemistry, lab experiments, and chemical reactions',
+//     color: '#F59E0B',
+//     noteCount: 12,
+//     createdAt: '2024-01-04'
+//   },
+//   {
+//     categorycode: 'HIST001',
+//     name: 'History',
+//     description: 'World history, historical events, and cultural studies',
+//     color: '#EF4444',
+//     noteCount: 6,
+//     createdAt: '2024-01-05'
+//   }
+// ];
 
 const predefinedColors = [
-  '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', 
-  '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
+  "#3B82F6",
+  "#10B981",
+  "#8B5CF6",
+  "#F59E0B",
+  "#EF4444",
+  "#06B6D4",
+  "#84CC16",
+  "#F97316",
+  "#EC4899",
+  "#6366F1",
 ];
 
 export default function Categories() {
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null
+  );
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    color: predefinedColors[0]
+    name: "",
+    description: "",
+    color: predefinedColors[0],
   });
 
-  const filteredCategories = categories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCategories = categories.filter(
+    (category) =>
+      category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      category.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      description: '',
-      color: predefinedColors[0]
+      name: "",
+      description: "",
+      color: predefinedColors[0],
     });
   };
+  const fetchCategories = async () => {
+    try {
+      const res = await fetchWithAuth("http://localhost:4000/api/categories");
 
-  const handleCreate = () => {
+      if (!res.payload || !Array.isArray(res.payload)) {
+        setCategories([]);
+        return;
+      }
+
+      const normalized = res.payload.map(
+        (item: any): Category => ({
+          categorycode: item._id,
+          name: item.name || "Unnamed Category",
+          description: item.description || "No description",
+          color:
+            item.color ||
+            predefinedColors[
+              Math.floor(Math.random() * predefinedColors.length)
+            ],
+          createdAt: item.createdAt || new Date().toISOString(), // fallback
+        })
+      );
+
+      setCategories(normalized);
+    } catch (err: any) {
+      console.error("Error fetching categories:", err.message);
+      alert("Failed to load categories: " + err.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const handleCreate = async () => {
     if (!formData.name.trim()) return;
 
-    const newCategory: Category = {
-      categorycode: `CAT${Date.now()}`,
+    const payload = {
       name: formData.name,
       description: formData.description,
       color: formData.color,
-      noteCount: 0,
-      createdAt: new Date().toISOString().split('T')[0]
     };
 
-    setCategories(prev => [...prev, newCategory]);
-    setIsCreateDialogOpen(false);
-    resetForm();
+    try {
+      await fetchWithAuth("http://localhost:4000/api/categories", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      await fetchCategories(); // Refetch to get backend response (with _id)
+
+      setIsCreateDialogOpen(false);
+      resetForm();
+    } catch (err: any) {
+      console.error("Error creating category:", err.message);
+      alert("Failed to create category: " + err.message);
+    }
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (!selectedCategory || !formData.name.trim()) return;
 
-    setCategories(prev => prev.map(cat =>
-      cat.categorycode === selectedCategory.categorycode
-        ? { ...cat, name: formData.name, description: formData.description, color: formData.color }
-        : cat
-    ));
-    setIsEditDialogOpen(false);
-    setSelectedCategory(null);
-    resetForm();
+    const payload = {
+      name: formData.name,
+      description: formData.description,
+      color: formData.color,
+    };
+
+    try {
+      await fetchWithAuth(
+        `http://localhost:4000/api/categories/${selectedCategory.categorycode}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        }
+      );
+
+      await fetchCategories();
+
+      setIsEditDialogOpen(false);
+      setSelectedCategory(null);
+      resetForm();
+    } catch (err: any) {
+      console.error("Error updating category:", err.message);
+      alert("Failed to update category: " + err.message);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!selectedCategory) return;
 
-    setCategories(prev => prev.filter(cat => cat.categorycode !== selectedCategory.categorycode));
-    setIsDeleteDialogOpen(false);
-    setSelectedCategory(null);
+    try {
+      await fetchWithAuth(
+        `http://localhost:4000/api/categories/${selectedCategory.categorycode}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      // ✅ Refetch after delete
+      await fetchCategories();
+
+      setIsDeleteDialogOpen(false);
+      setSelectedCategory(null);
+    } catch (err: any) {
+      console.error("Error deleting category:", err.message);
+      alert("Failed to delete category: " + err.message);
+    }
   };
 
   const openEditDialog = (category: Category) => {
@@ -147,7 +250,7 @@ export default function Categories() {
     setFormData({
       name: category.name,
       description: category.description,
-      color: category.color
+      color: category.color || predefinedColors[0],
     });
     setIsEditDialogOpen(true);
   };
@@ -155,6 +258,28 @@ export default function Categories() {
   const openDeleteDialog = (category: Category) => {
     setSelectedCategory(category);
     setIsDeleteDialogOpen(true);
+  };
+
+  const formatDateTime = (isoString: string): string => {
+    try {
+      const date = new Date(isoString);
+
+      if (isNaN(date.getTime())) {
+        return "Invalid Date";
+      }
+
+      return new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }).format(date);
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Invalid Date";
+    }
   };
 
   return (
@@ -169,7 +294,9 @@ export default function Categories() {
           >
             <div>
               <h1 className="text-3xl font-bold text-navy-950">Categories</h1>
-              <p className="text-navy-600 mt-2">Organize your notes into meaningful categories</p>
+              <p className="text-navy-600 mt-2">
+                Organize your notes into meaningful categories
+              </p>
             </div>
             <Button
               onClick={() => setIsCreateDialogOpen(true)}
@@ -209,8 +336,12 @@ export default function Categories() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-navy-600">Total Categories</p>
-                    <p className="text-2xl font-bold text-navy-950">{categories.length}</p>
+                    <p className="text-sm font-medium text-navy-600">
+                      Total Categories
+                    </p>
+                    <p className="text-2xl font-bold text-navy-950">
+                      {categories.length}
+                    </p>
                   </div>
                   <div className="p-2 rounded-full bg-blue-500">
                     <Folder className="h-4 w-4 text-white" />
@@ -218,11 +349,13 @@ export default function Categories() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-white/80 backdrop-blur-sm border-navy-200">
+            {/* <Card className="bg-white/80 backdrop-blur-sm border-navy-200">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-navy-600">Total Notes</p>
+                    <p className="text-sm font-medium text-navy-600">
+                      Total Notes
+                    </p>
                     <p className="text-2xl font-bold text-navy-950">
                       {categories.reduce((sum, cat) => sum + cat.noteCount, 0)}
                     </p>
@@ -232,15 +365,20 @@ export default function Categories() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
-            <Card className="bg-white/80 backdrop-blur-sm border-navy-200">
+            </Card> */}
+            {/* <Card className="bg-white/80 backdrop-blur-sm border-navy-200">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-navy-600">Most Used</p>
+                    <p className="text-sm font-medium text-navy-600">
+                      Most Used
+                    </p>
                     <p className="text-lg font-bold text-navy-950">
-                      {categories.length > 0 ? categories.reduce((prev, current) => 
-                        prev.noteCount > current.noteCount ? prev : current).name : 'None'}
+                      {categories.length > 0
+                        ? categories.reduce((prev, current) =>
+                            prev.noteCount > current.noteCount ? prev : current
+                          ).name
+                        : "None"}
                     </p>
                   </div>
                   <div className="p-2 rounded-full bg-purple-500">
@@ -248,7 +386,7 @@ export default function Categories() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </motion.div>
 
           {/* Categories Grid */}
@@ -270,7 +408,7 @@ export default function Categories() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3">
-                        <div 
+                        <div
                           className="w-4 h-4 rounded-full"
                           style={{ backgroundColor: category.color }}
                         />
@@ -303,11 +441,15 @@ export default function Categories() {
                       {category.description}
                     </CardDescription>
                     <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="bg-navy-100 text-navy-700">
-                        {category.noteCount} {category.noteCount === 1 ? 'note' : 'notes'}
-                      </Badge>
+                      {/* <Badge
+                        variant="secondary"
+                        className="bg-navy-100 text-navy-700"
+                      >
+                        {category.noteCount}{" "}
+                        {category.noteCount === 1 ? "note" : "notes"}
+                      </Badge> */}
                       <span className="text-xs text-navy-500">
-                        Created {category.createdAt}
+                        Created {formatDateTime(category.createdAt)}
                       </span>
                     </div>
                   </CardContent>
@@ -324,13 +466,12 @@ export default function Categories() {
             >
               <Folder className="h-16 w-16 text-navy-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-navy-700 mb-2">
-                {searchTerm ? 'No categories found' : 'No categories yet'}
+                {searchTerm ? "No categories found" : "No categories yet"}
               </h3>
               <p className="text-navy-500 mb-6">
-                {searchTerm 
-                  ? 'Try adjusting your search terms'
-                  : 'Create your first category to organize your notes'
-                }
+                {searchTerm
+                  ? "Try adjusting your search terms"
+                  : "Create your first category to organize your notes"}
               </p>
               {!searchTerm && (
                 <Button
@@ -345,25 +486,27 @@ export default function Categories() {
           )}
 
           {/* Create/Edit Dialog */}
-          <Dialog open={isCreateDialogOpen || isEditDialogOpen} onOpenChange={(open) => {
-            if (!open) {
-              setIsCreateDialogOpen(false);
-              setIsEditDialogOpen(false);
-              resetForm();
-              setSelectedCategory(null);
-            }
-          }}>
+          <Dialog
+            open={isCreateDialogOpen || isEditDialogOpen}
+            onOpenChange={(open) => {
+              if (!open) {
+                setIsCreateDialogOpen(false);
+                setIsEditDialogOpen(false);
+                resetForm();
+                setSelectedCategory(null);
+              }
+            }}
+          >
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle className="flex items-center">
                   <Folder className="h-5 w-5 mr-2 text-accent" />
-                  {isCreateDialogOpen ? 'Create New Category' : 'Edit Category'}
+                  {isCreateDialogOpen ? "Create New Category" : "Edit Category"}
                 </DialogTitle>
                 <DialogDescription>
-                  {isCreateDialogOpen 
-                    ? 'Add a new category to organize your notes'
-                    : 'Update the category details'
-                  }
+                  {isCreateDialogOpen
+                    ? "Add a new category to organize your notes"
+                    : "Update the category details"}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -373,7 +516,9 @@ export default function Categories() {
                     id="name"
                     placeholder="e.g., Mathematics"
                     value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, name: e.target.value }))
+                    }
                     className="border-navy-200 focus:border-accent focus:ring-accent"
                   />
                 </div>
@@ -383,7 +528,12 @@ export default function Categories() {
                     id="description"
                     placeholder="Brief description of this category"
                     value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
                     className="border-navy-200 focus:border-accent focus:ring-accent"
                   />
                 </div>
@@ -393,11 +543,13 @@ export default function Categories() {
                     {predefinedColors.map((color) => (
                       <button
                         key={color}
-                        onClick={() => setFormData(prev => ({ ...prev, color }))}
+                        onClick={() =>
+                          setFormData((prev) => ({ ...prev, color }))
+                        }
                         className={`w-8 h-8 rounded-full border-2 transition-all ${
-                          formData.color === color 
-                            ? 'border-navy-950 scale-110' 
-                            : 'border-navy-200 hover:scale-105'
+                          formData.color === color
+                            ? "border-navy-950 scale-110"
+                            : "border-navy-200 hover:scale-105"
                         }`}
                         style={{ backgroundColor: color }}
                       />
@@ -424,21 +576,23 @@ export default function Categories() {
                   disabled={!formData.name.trim()}
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {isCreateDialogOpen ? 'Create' : 'Update'}
+                  {isCreateDialogOpen ? "Create" : "Update"}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
           {/* Delete Confirmation Dialog */}
-          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialog
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+          >
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Category</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to delete "{selectedCategory?.name}"? 
-                  This category contains {selectedCategory?.noteCount} notes. 
-                  This action cannot be undone.
+                  Are you sure you want to delete "{selectedCategory?.name}"?
+                  This category contains notes. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
