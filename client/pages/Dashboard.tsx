@@ -36,65 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Layout from "@/components/Layout";
-
-// Initial mock data for notes - will be used to seed localStorage if empty
-const initialMockNotes = [
-  {
-    noteid: "note_001",
-    id: 1,
-    title: "Advanced Calculus - Derivatives",
-    content: "Chain rule, product rule, and quotient rule applications...",
-    category: "Mathematics",
-    tags: ["calculus", "derivatives", "math"],
-    createdAt: "2024-01-15",
-    updatedAt: "2024-01-15",
-    isShared: false,
-  },
-  {
-    noteid: "note_002",
-    id: 2,
-    title: "Organic Chemistry Lab Notes",
-    content: "Synthesis of aspirin experiment procedures and observations...",
-    category: "Chemistry",
-    tags: ["organic", "lab", "synthesis"],
-    createdAt: "2024-01-14",
-    updatedAt: "2024-01-14",
-    isShared: true,
-  },
-  {
-    noteid: "note_003",
-    id: 3,
-    title: "World History - Industrial Revolution",
-    content: "Key factors leading to industrialization in Europe...",
-    category: "History",
-    tags: ["history", "industrial", "europe"],
-    createdAt: "2024-01-13",
-    updatedAt: "2024-01-13",
-    isShared: false,
-  },
-  {
-    noteid: "note_004",
-    id: 4,
-    title: "Physics - Quantum Mechanics",
-    content: "Wave-particle duality and uncertainty principle fundamentals...",
-    category: "Physics",
-    tags: ["quantum", "physics", "mechanics"],
-    createdAt: "2024-01-12",
-    updatedAt: "2024-01-12",
-    isShared: false,
-  },
-  {
-    noteid: "note_005",
-    id: 5,
-    title: "Computer Science - Data Structures",
-    content: "Binary trees, linked lists, and hash tables implementation...",
-    category: "Computer Science",
-    tags: ["data structures", "algorithms", "programming"],
-    createdAt: "2024-01-11",
-    updatedAt: "2024-01-11",
-    isShared: true,
-  },
-];
+import { fetchWithAuth } from "@/utils/api";
 
 export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -104,26 +46,48 @@ export default function Dashboard() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Load notes from localStorage on component mount
   useEffect(() => {
-    const savedNotes = localStorage.getItem("notes");
-    if (savedNotes) {
+    const fetchNotes = async () => {
       try {
-        const parsedNotes = JSON.parse(savedNotes);
-        setNotes(parsedNotes);
+        const data = await fetchWithAuth("http://localhost:4000/api/notes", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (data?.status === 200) {
+          const apiNotes = data.payload.notes.map((n: any) => ({
+            id: n._id,
+            title: n.title,
+            content: n.content,
+            category: n.categoryId ? n.categoryId.name : "Uncategorized",
+            tags: n.tagId ? [n.tagId.name] : [],
+            createdAt: new Date(n.createdAt).toLocaleDateString(),
+            updatedAt: new Date(n.updatedAt).toLocaleDateString(),
+            isShared: false,
+          }));
+          setNotes(apiNotes);
+        }
       } catch (error) {
-        console.error("Error parsing saved notes:", error);
-        setNotes(initialMockNotes);
-        localStorage.setItem("notes", JSON.stringify(initialMockNotes));
+        console.error("Error fetching notes:", error);
       }
-    } else {
-      // Initialize with mock data if no saved notes
-      setNotes(initialMockNotes);
-      localStorage.setItem("notes", JSON.stringify(initialMockNotes));
-    }
+    };
+
+    fetchNotes();
+
+    const handleUpdate = () => fetchNotes();
+    window.addEventListener("notesUpdated", handleUpdate);
+    return () => window.removeEventListener("notesUpdated", handleUpdate);
   }, []);
 
-  // Listen for storage changes to update notes when they're modified elsewhere
+  const filteredNotes = notes.filter(
+    (note) =>
+      note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      note.tags.some((tag: string) =>
+        tag.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+  );
+
   useEffect(() => {
     const handleStorageChange = () => {
       const savedNotes = localStorage.getItem("notes");
@@ -147,21 +111,11 @@ export default function Dashboard() {
     };
   }, []);
 
-  const filteredNotes = notes.filter(
-    (note) =>
-      note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      note.tags.some((tag) =>
-        tag.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-  );
-
   const handleCreateNote = () => {
     navigate("/note/new");
   };
 
   const handleEditNote = (note: any) => {
-    // Use noteid if available, otherwise fall back to id
     const noteIdentifier = note.noteid || note.id;
     navigate(`/note/${noteIdentifier}`);
   };
