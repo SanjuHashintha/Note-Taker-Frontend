@@ -46,37 +46,33 @@ export default function Dashboard() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchNotes = async () => {
-      try {
-        const data = await fetchWithAuth("http://localhost:4000/api/notes", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
+  const fetchNotes = async () => {
+    try {
+      const data = await fetchWithAuth("http://localhost:4000/api/notes", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
 
-        if (data?.status === 200) {
-          const apiNotes = data.payload.notes.map((n: any) => ({
-            id: n._id,
-            title: n.title,
-            content: n.content,
-            category: n.categoryId ? n.categoryId.name : "Uncategorized",
-            tags: n.tagId ? [n.tagId.name] : [],
-            createdAt: new Date(n.createdAt).toLocaleDateString(),
-            updatedAt: new Date(n.updatedAt).toLocaleDateString(),
-            isShared: false,
-          }));
-          setNotes(apiNotes);
-        }
-      } catch (error) {
-        console.error("Error fetching notes:", error);
+      if (data?.status === 200) {
+        const apiNotes = data.payload.notes.map((n: any) => ({
+          id: n._id,
+          title: n.title,
+          content: n.content,
+          category: n.categoryId ? n.categoryId.name : "Uncategorized",
+          tags: n.tagId ? [n.tagId.name] : [],
+          createdAt: new Date(n.createdAt).toLocaleDateString(),
+          updatedAt: new Date(n.updatedAt).toLocaleDateString(),
+          isShared: false,
+        }));
+        setNotes(apiNotes);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+    }
+  };
 
+  useEffect(() => {
     fetchNotes();
-
-    const handleUpdate = () => fetchNotes();
-    window.addEventListener("notesUpdated", handleUpdate);
-    return () => window.removeEventListener("notesUpdated", handleUpdate);
   }, []);
 
   const filteredNotes = notes.filter(
@@ -88,35 +84,11 @@ export default function Dashboard() {
       )
   );
 
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedNotes = localStorage.getItem("notes");
-      if (savedNotes) {
-        try {
-          const parsedNotes = JSON.parse(savedNotes);
-          setNotes(parsedNotes);
-        } catch (error) {
-          console.error("Error parsing saved notes:", error);
-        }
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    // Also listen for custom events when notes are updated within the same tab
-    window.addEventListener("notesUpdated", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("notesUpdated", handleStorageChange);
-    };
-  }, []);
-
   const handleCreateNote = () => {
     navigate("/note/new");
   };
 
   const handleEditNote = (note: any) => {
-    console.log("🚀 ~ handleEditNote ~ note:", note);
     const noteIdentifier = note.noteid || note.id;
     navigate(`/note/${noteIdentifier}`);
   };
@@ -126,22 +98,36 @@ export default function Dashboard() {
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDeleteNote = () => {
+  const confirmDeleteNote = async () => {
     if (noteToDelete) {
-      const updatedNotes = notes.filter((note) => {
-        const noteId = note.noteid || note.id;
-        const deleteId = noteToDelete.noteid || noteToDelete.id;
-        return noteId !== deleteId;
-      });
+      try {
+        const noteId = noteToDelete.id || noteToDelete._id;
 
-      setNotes(updatedNotes);
-      localStorage.setItem("notes", JSON.stringify(updatedNotes));
+        if (!noteId) {
+          throw new Error("Note ID not found");
+        }
 
-      // Dispatch custom event to notify other components of the change
-      window.dispatchEvent(new Event("notesUpdated"));
+        const response = await fetchWithAuth(
+          `http://localhost:4000/api/notes/${noteId}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
-      setIsDeleteDialogOpen(false);
-      setNoteToDelete(null);
+        if (response?.status === "success") {
+          // Just refetch the notes
+          await fetchNotes();
+          console.log("Note deleted successfully");
+        } else {
+          throw new Error("Failed to delete note");
+        }
+      } finally {
+        setIsDeleteDialogOpen(false);
+        setNoteToDelete(null);
+      }
     }
   };
 
