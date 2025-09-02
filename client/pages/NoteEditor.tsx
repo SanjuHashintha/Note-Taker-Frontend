@@ -138,45 +138,39 @@ export default function NoteEditor() {
     setIsSaving(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const userId = user?._id;
 
-      // Get existing notes from localStorage
-      const existingNotes = JSON.parse(localStorage.getItem("notes") || "[]");
-
-      if (isEditing && id) {
-        // Update existing note
-        const updatedNotes = existingNotes.map((note: any) =>
-          note.noteid === id || note.id === parseInt(id)
-            ? {
-                ...note,
-                ...noteData,
-                updatedAt: new Date().toISOString().split("T")[0],
-              }
-            : note
-        );
-        localStorage.setItem("notes", JSON.stringify(updatedNotes));
-      } else {
-        // Create new note
-        const newNote = {
-          noteid: `note_${Date.now()}`, // Use timestamp-based noteid to match backend schema
-          id: Date.now(), // Keep id for backward compatibility
-          ...noteData,
-          createdAt: new Date().toISOString().split("T")[0],
-          updatedAt: new Date().toISOString().split("T")[0],
-        };
-
-        const updatedNotes = [newNote, ...existingNotes];
-        localStorage.setItem("notes", JSON.stringify(updatedNotes));
+      if (!userId) {
+        alert("User not found. Please log in again.");
+        setIsSaving(false);
+        return;
       }
 
-      // Dispatch custom event to update Dashboard in real-time
+      const body = {
+        title: noteData.title,
+        content: noteData.content,
+        categoryId: noteData.categoryId,
+        tagId: noteData.tagId,
+      };
+
+      const url = `http://localhost:4000/api/notes/${userId}`;
+
+      const response = await fetchWithAuth(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      // Notify dashboard to refresh
       window.dispatchEvent(new Event("notesUpdated"));
 
-      console.log("Note saved successfully:", noteData);
       navigate("/dashboard");
-    } catch (error) {
-      console.error("Error saving note:", error);
-      alert("Error saving note. Please try again.");
+    } catch (error: any) {
+      console.error("Error creating note:", error);
+      alert("Error creating note. Please try again.");
     } finally {
       setIsSaving(false);
     }
