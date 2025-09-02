@@ -48,10 +48,15 @@ export default function Dashboard() {
 
   const fetchNotes = async () => {
     try {
-      const data = await fetchWithAuth("http://localhost:4000/api/notes", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
+      const userId = JSON.parse(localStorage.getItem("user") || "{}")._id;
+
+      const data = await fetchWithAuth(
+        `http://localhost:4000/api/notes?user=${userId}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
       if (data?.status === 200) {
         const apiNotes = data.payload.notes.map((n: any) => ({

@@ -169,13 +169,50 @@ export default function Profile() {
 
   const handleProfileSave = async () => {
     setIsSaving(true);
+
     try {
-      // Simulate save operation
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      const userId = JSON.parse(localStorage.getItem("user") || "{}")._id;
+      if (!userId) throw new Error("User ID not found");
+
+      // Prepare FormData
+      const formData = new FormData();
+      formData.append("firstName", profileData.firstName);
+      formData.append("lastName", profileData.lastName);
+      formData.append("email", profileData.email);
+      formData.append("university", profileData.university);
+      const profilePicture = profileData.profilePicture;
+
+      if (profilePicture && typeof profilePicture !== "string") {
+        formData.append("profilePic", profilePicture);
+      }
+
+      const response = await fetch(
+        `http://localhost:4000/api/users/${userId}`,
+        {
+          method: "PUT", // or POST depending on your API
+          body: formData,
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.status === 200) {
+        // Update localStorage user data
+        localStorage.setItem("user", JSON.stringify(result.payload));
+
+        // Update state
+        setProfileData((prev) => ({
+          ...prev,
+          profilePicture: result.payload.profilePic || prev.profilePicture,
+        }));
+
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        console.error("Failed to update profile", result);
+      }
     } catch (error) {
-      console.error("Error saving profile:", error);
+      console.error("Error updating profile:", error);
     } finally {
       setIsSaving(false);
     }
@@ -317,11 +354,11 @@ export default function Profile() {
                     {/* Profile Picture */}
                     <div className="flex items-center space-x-6">
                       <Avatar className="h-24 w-24">
-                        {profileData.profilePicture ? (
+                        {typeof profileData.profilePicture === "string" &&
+                        profileData.profilePicture ? (
                           <img
-                            src={profileData.profilePicture}
+                            src={`http://localhost:4000${profileData.profilePicture}`}
                             alt="Profile"
-                            className="object-cover w-full h-full"
                           />
                         ) : (
                           <AvatarFallback className="bg-accent text-accent-foreground text-xl">
