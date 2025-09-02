@@ -116,6 +116,7 @@ export default function Dashboard() {
   };
 
   const handleEditNote = (note: any) => {
+    console.log("🚀 ~ handleEditNote ~ note:", note);
     const noteIdentifier = note.noteid || note.id;
     navigate(`/note/${noteIdentifier}`);
   };

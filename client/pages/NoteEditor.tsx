@@ -39,37 +39,6 @@ import { Separator } from "@/components/ui/separator";
 import Layout from "@/components/Layout";
 import { fetchWithAuth } from "@/utils/api";
 
-const categories = [
-  "Mathematics",
-  "Physics",
-  "Chemistry",
-  "Biology",
-  "Computer Science",
-  "History",
-  "Literature",
-  "Philosophy",
-  "Economics",
-  "Psychology",
-];
-
-const availableTags = [
-  "lecture",
-  "assignment",
-  "exam",
-  "research",
-  "project",
-  "lab",
-  "quiz",
-  "notes",
-  "important",
-  "review",
-  "homework",
-  "study",
-  "theory",
-  "practical",
-  "experiment",
-];
-
 export default function NoteEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -95,7 +64,6 @@ export default function NoteEditor() {
       const res = await fetchWithAuth("http://localhost:4000/api/categories");
       const data = res.payload || [];
 
-      // normalize category objects
       const normalized = data.map((c: any) => ({
         id: c._id,
         name: c.name,
@@ -123,6 +91,33 @@ export default function NoteEditor() {
       console.error("Error fetching tags:", err.message);
     }
   };
+  useEffect(() => {
+    const fetchNote = async () => {
+      if (isEditing && id) {
+        try {
+          const response = await fetchWithAuth(
+            `http://localhost:4000/api/notes?id=${id}`
+          );
+          if (response?.status === 200 && response.payload.notes.length > 0) {
+            const note = response.payload.notes[0];
+            setNoteData({
+              title: note.title,
+              content: note.content,
+              categoryId: note.categoryId?._id || "",
+              tagId: note.tagId?._id || "",
+              isShared: false,
+              sharedWith: [],
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching note:", error);
+          alert("Error loading note data");
+        }
+      }
+    };
+
+    fetchNote();
+  }, [id, isEditing]);
 
   useEffect(() => {
     fetchCategories();
@@ -152,46 +147,44 @@ export default function NoteEditor() {
         content: noteData.content,
         categoryId: noteData.categoryId,
         tagId: noteData.tagId,
+        user: userId,
       };
 
-      const url = `http://localhost:4000/api/notes/${userId}`;
+      let url: string;
+      let method: string;
+
+      if (isEditing && id) {
+        // Update existing note
+        url = `http://localhost:4000/api/notes/${id}`;
+        method = "PUT";
+      } else {
+        // Create new note
+        url = `http://localhost:4000/api/notes/${userId}`;
+        method = "POST";
+      }
 
       const response = await fetchWithAuth(url, {
-        method: "POST",
+        method: method,
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
       });
 
-      // Notify dashboard to refresh
-      window.dispatchEvent(new Event("notesUpdated"));
-
-      navigate("/dashboard");
+      if (response?.status === 200 || response?.status === 201) {
+        // Notify dashboard to refresh
+        window.dispatchEvent(new Event("notesUpdated"));
+        navigate("/dashboard");
+      } else {
+        throw new Error("Failed to save note");
+      }
     } catch (error: any) {
-      console.error("Error creating note:", error);
-      alert("Error creating note. Please try again.");
+      console.error("Error saving note:", error);
+      alert("Error saving note. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
-
-  // const handleAddTag = () => {
-  //   if (newTag.trim() && !noteData.tags.includes(newTag.trim())) {
-  //     setNoteData((prev) => ({
-  //       ...prev,
-  //       tags: [...prev.tags, newTag.trim()],
-  //     }));
-  //     setNewTag("");
-  //   }
-  // };
-
-  // const handleRemoveTag = (tagToRemove: string) => {
-  //   setNoteData((prev) => ({
-  //     ...prev,
-  //     tags: prev.tags.filter((tag) => tag !== tagToRemove),
-  //   }));
-  // };
 
   const handleShareNote = () => {
     if (shareEmail.trim()) {
@@ -360,12 +353,12 @@ export default function NoteEditor() {
                         }}
                         className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full mr-2"
                       />
-                      Saving Magic...
+                      {isEditing ? "Updating..." : "Saving Magic..."}
                     </>
                   ) : (
                     <>
                       <Wand2 className="h-5 w-5 mr-2" />
-                      Save Note
+                      {isEditing ? "Update Note" : "Save Note"}
                     </>
                   )}
                 </Button>
